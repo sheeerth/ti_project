@@ -1,7 +1,10 @@
 package main
 
+import (
+	"net"
+)
+
 type IPAddress struct {
-	ipAddress string
+	ipAddress net.IPNet
 	description string
-	level int
 }

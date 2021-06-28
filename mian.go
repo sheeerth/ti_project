@@ -3,7 +3,11 @@ package main
 import (
     "bufio"
     "fmt"
+    "log"
+    "net"
+    _ "net"
     "os"
+    _ "strconv"
     "strings"
 )
 
@@ -29,11 +33,16 @@ func openFile(filePath string) {
 
         splitString := strings.Split(line, ",")
 
-        extractedAdress := strings.ReplaceAll(splitString[0], " ", "")
+        ipv4Addr, ipv4Net, err := net.ParseCIDR(strings.ReplaceAll(splitString[0], " ", ""))
+        if err != nil {
+            log.Fatal(err)
+        }
 
-        adress := IPAddress{ipAddress: extractedAdress, description: splitString[1], level: 0}
+        fmt.Println("4-byte representation : ", ipv4Addr.To4())
 
-        ipAddresses = append(ipAddresses, adress)
+        address := IPAddress{ipAddress: *ipv4Net, description: splitString[1]}
+
+        ipAddresses = append(ipAddresses, address)
     }
 
     fmt.Println(ipAddresses)
