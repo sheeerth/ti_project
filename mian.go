@@ -33,19 +33,43 @@ func openFile(filePath string) {
 
         splitString := strings.Split(line, ",")
 
-        ipv4Addr, ipv4Net, err := net.ParseCIDR(strings.ReplaceAll(splitString[0], " ", ""))
+        _, ipv4Net, err := net.ParseCIDR(strings.ReplaceAll(splitString[0], " ", ""))
         if err != nil {
             log.Fatal(err)
         }
 
-        fmt.Println("4-byte representation : ", ipv4Addr.To4())
+        fmt.Println("4-byte representation : ", ipv4Net.IP.To4(), ipv4Net.Mask.String())
 
         address := IPAddress{ipAddress: *ipv4Net, description: splitString[1]}
 
         ipAddresses = append(ipAddresses, address)
     }
 
-    fmt.Println(ipAddresses)
+    var correctAddressList []IPAddress
+
+    for x, address := range ipAddresses {
+        repeat := false
+
+        for y, ipAddress := range ipAddresses {
+            if x == y {
+                break
+            }
+
+            if address.ipAddress.IP.String() == ipAddress.ipAddress.IP.String() && address.ipAddress.Mask.String() == ipAddress.ipAddress.Mask.String() {
+                repeat = true
+            }
+        }
+
+        if !repeat {
+            correctAddressList = append(correctAddressList, ipAddresses[x])
+        }
+    }
+
+    fmt.Println("----")
+
+    for _, address := range correctAddressList {
+        fmt.Println("4-byte representation : ", address.ipAddress.IP.To4(), address.ipAddress.Mask.String(), address.description)
+    }
 
     if err := scanner.Err(); err != nil {
         fmt.Println(err)
