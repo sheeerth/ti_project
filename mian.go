@@ -1,89 +1,113 @@
 package main
 
 import (
-    "bufio"
-    "fmt"
-    "log"
-    "net"
-    _ "net"
-    "os"
-    _ "strconv"
-    "strings"
+	"errors"
+	"fmt"
+	_ "net"
+	"os"
+	_ "strconv"
+	"strings"
 )
 
-func openFile(filePath string) {
-    var ipAddresses []IPAddress
+func repeatedAddElements(stringArray []*string, actualString []string, index *int, master *IPAddress, level int) ([]string, *IPAddress,  error) {
+	slave, _ := createNewIpAddress(strings.Replace(actualString[0], "\t", "", level), actualString[1])
 
-    fmt.Println(filePath)
+	if master != nil {
+		master.subnets = append(master.subnets, slave)
+	}
 
-    f, err := os.Open(filePath)
+	println(level, ":", actualString[0], index)
 
-    if err != nil {
-        fmt.Println(err)
-    }
+	*index++
 
-    defer f.Close()
+	if *index >= len(stringArray) {
+		return nil, nil, errors.New("out of range")
+	}
 
-    scanner := bufio.NewScanner(f)
-    scanner.Split(bufio.ScanLines)
+	return strings.Split(*stringArray[*index], ","), slave, nil
+}
 
-    for scanner.Scan() {
+func openFile(stringArray []*string) {
+	var ipAddresses []*IPAddress
+	var addElementError error
 
-        line := scanner.Text()
+	index := 0
 
-        splitString := strings.Split(line, ",")
+	actualString := strings.Split(*stringArray[index], ",")
 
-        _, ipv4Net, err := net.ParseCIDR(strings.ReplaceAll(splitString[0], " ", ""))
-        if err != nil {
-            log.Fatal(err)
-        }
+	var master *IPAddress
+	actualString, master, addElementError = repeatedAddElements(stringArray, actualString, &index, nil, 0)
+	if addElementError != nil {
+		return
+	}
 
-        fmt.Println("4-byte representation : ", ipv4Net.IP.To4(), ipv4Net.Mask.String())
+	if strings.Count(actualString[0], "\t") == 1 {
+		for index <= len(stringArray) - 1 {
+			var slave *IPAddress
+			actualString, slave, addElementError = repeatedAddElements(stringArray, actualString, &index, master, 1)
+			if addElementError != nil {
+				break
+			}
 
-        address := IPAddress{ipAddress: *ipv4Net, description: splitString[1]}
+			if strings.Count(actualString[0], "\t") == 2 {
+				for index <= len(stringArray) - 1 {
 
-        ipAddresses = append(ipAddresses, address)
-    }
+					actualString, _, addElementError = repeatedAddElements(stringArray, actualString, &index, slave, 2)
+					if addElementError != nil {
+						break
+					}
+				}
+			}
+		}
+	}
 
-    var correctAddressList []IPAddress
+	ipAddresses = append(ipAddresses, master)
 
-    for x, address := range ipAddresses {
-        repeat := false
+	//var correctAddressList []IPAddress
+	//
+	//for x, address := range ipAddresses {
+	//	repeat := false
+	//
+	//	for y, ipAddress := range ipAddresses {
+	//		if x == y {
+	//			break
+	//		}
+	//
+	//		if address.ipAddress.IP.String() == ipAddress.ipAddress.IP.String() && address.ipAddress.Mask.String() == ipAddress.ipAddress.Mask.String() {
+	//			repeat = true
+	//		}
+	//	}
+	//
+	//	if !repeat {
+	//		correctAddressList = append(correctAddressList, ipAddresses[x])
+	//	}
+	//}
 
-        for y, ipAddress := range ipAddresses {
-            if x == y {
-                break
-            }
+	fmt.Println("----")
 
-            if address.ipAddress.IP.String() == ipAddress.ipAddress.IP.String() && address.ipAddress.Mask.String() == ipAddress.ipAddress.Mask.String() {
-                repeat = true
-            }
-        }
+	displayIpAddressArray(ipAddresses)
+}
 
-        if !repeat {
-            correctAddressList = append(correctAddressList, ipAddresses[x])
-        }
-    }
+func fileOption(argsWithoutProg []string, index int) {
+	stringArray, err := readFile(argsWithoutProg[index + 1])
+	if err != nil {
+		fmt.Println(err)
+	}
 
-    fmt.Println("----")
-
-    for _, address := range correctAddressList {
-        fmt.Println("4-byte representation : ", address.ipAddress.IP.To4(), address.ipAddress.Mask.String(), address.description)
-    }
-
-    if err := scanner.Err(); err != nil {
-        fmt.Println(err)
-    }
+	openFile(stringArray)
 }
 
 func main() {
-    argsWithoutProg := os.Args[1:]
+	argsWithoutProg := os.Args[1:]
 
-    for i, s := range argsWithoutProg {
-        switch s {
-        case "--file":
-            openFile(argsWithoutProg[i+1])
-            break
-        }
-    }
+	for i, s := range argsWithoutProg {
+		switch s {
+		case "--file":
+			fileOption(argsWithoutProg, i)
+			break
+		case "-f":
+			fileOption(argsWithoutProg, i)
+			break
+		}
+	}
 }
