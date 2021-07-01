@@ -16,7 +16,7 @@ func repeatedAddElements(stringArray []*string, actualString []string, index *in
 		master.subnets = append(master.subnets, slave)
 	}
 
-	println(level, ":", actualString[0], index)
+	println(level, ":", actualString[0], *index)
 
 	*index++
 
@@ -25,6 +25,24 @@ func repeatedAddElements(stringArray []*string, actualString []string, index *in
 	}
 
 	return strings.Split(*stringArray[*index], ","), slave, nil
+}
+
+func createNextLevel(actualString []string, index *int, stringArray []*string,master *IPAddress ,level int) {
+	var addElementError error
+
+	// TODO zabezpieczenie jesli nie ma żadnej tabulacji
+
+	if strings.Count(actualString[0], "\t") == level {
+		for *index <= len(stringArray) - 1 {
+			var slave *IPAddress
+			actualString, slave, addElementError = repeatedAddElements(stringArray, actualString, index, master, level)
+			if addElementError != nil {
+				break
+			}
+
+			createNextLevel(actualString, index, stringArray, slave, level + 1)
+		}
+	}
 }
 
 func openFile(stringArray []*string) {
@@ -41,27 +59,19 @@ func openFile(stringArray []*string) {
 		return
 	}
 
-	if strings.Count(actualString[0], "\t") == 1 {
-		for index <= len(stringArray) - 1 {
-			var slave *IPAddress
-			actualString, slave, addElementError = repeatedAddElements(stringArray, actualString, &index, master, 1)
-			if addElementError != nil {
-				break
-			}
-
-			if strings.Count(actualString[0], "\t") == 2 {
-				for index <= len(stringArray) - 1 {
-
-					actualString, _, addElementError = repeatedAddElements(stringArray, actualString, &index, slave, 2)
-					if addElementError != nil {
-						break
-					}
-				}
-			}
-		}
-	}
+	createNextLevel(actualString, &index, stringArray, master, 1)
 
 	ipAddresses = append(ipAddresses, master)
+
+	//var secondMaster *IPAddress
+	//actualString, secondMaster, addElementError = repeatedAddElements(stringArray, actualString, &index, nil, 0)
+	//if addElementError != nil {
+	//	return
+	//}
+	//
+	//createNextLevel(actualString, &index, stringArray, secondMaster, 1)
+	//
+	//ipAddresses = append(ipAddresses, secondMaster)
 
 	//var correctAddressList []IPAddress
 	//
