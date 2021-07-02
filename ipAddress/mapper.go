@@ -47,6 +47,41 @@ func createNextLevel(actualString []string, index *int, stringArray []*string, m
 	return nil
 }
 
+func checkRepeat(ipAddresses []*IPAddress) []*IPAddress {
+	var correctAddressList []*IPAddress
+	var subnetsCorrect []*IPAddress
+
+	for x, address := range ipAddresses {
+		repeat := false
+
+		if address.subnets != nil {
+			subnetsCorrect = checkRepeat(address.subnets)
+		}
+
+		for y, ipAddress := range ipAddresses {
+			if x == y {
+				break
+			}
+
+			if address.getAddressString() == ipAddress.getAddressString() &&
+				address.getAddressMaskString() == ipAddress.getAddressMaskString() {
+				repeat = true
+			}
+		}
+
+		if !repeat {
+			master := ipAddresses[x]
+
+			master.subnets = subnetsCorrect
+			correctAddressList = append(correctAddressList, master)
+		} else {
+			println("\033[31mRepeated address", ipAddresses[x].getAddressString(), "\033[0m")
+		}
+	}
+
+	return correctAddressList
+}
+
 func AddressesMapper(stringArray []*string) []*IPAddress {
 	var ipAddresses []*IPAddress
 	var addElementError error
@@ -69,7 +104,5 @@ func AddressesMapper(stringArray []*string) []*IPAddress {
 		}
 	}
 
-	// TODO wykrywanie powtórzeń
-
-	return ipAddresses
+	return checkRepeat(ipAddresses)
 }

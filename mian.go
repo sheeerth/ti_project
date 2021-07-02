@@ -14,7 +14,16 @@ func fileOption(argsWithoutProg []string, index int) {
 		fmt.Println(err)
 	}
 
-	ipAddress.DisplayIpAddressArray(ipAddress.AddressesMapper(stringArray), 0)
+	outputString := ipAddress.AddressesMapper(stringArray)
+	//
+	//cmd := exec.Command("stty", "size")
+	//cmd.Stdin = os.Stdin
+	//out, _ := cmd.Output()
+	//fmt.Printf("out: %#v", string(out))
+
+	println("")
+
+	ipAddress.DisplayIpAddressArray(outputString, 0)
 }
 
 func main() {

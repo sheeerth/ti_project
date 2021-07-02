@@ -13,12 +13,20 @@ type IPAddress struct {
 	subnets     []*IPAddress
 }
 
-func giveInfoString(x *IPAddress) (string, error) {
+func (x *IPAddress) giveInfoString() (string, error) {
 	if x == nil {
 		return "", errors.New("object can't be nil")
 	}
 
 	return fmt.Sprintf("%s %s %s", (*x).ipAddress.IP.To4(), (*x).ipAddress.Mask.String(), (*x).description), nil
+}
+
+func (x *IPAddress) getAddressString () string {
+	return x.ipAddress.IP.String()
+}
+
+func (x *IPAddress) getAddressMaskString() string {
+	return x.ipAddress.Mask.String()
 }
 
 func CreateNewIpAddress(addressString string, description string) (*IPAddress, error) {
@@ -33,7 +41,7 @@ func CreateNewIpAddress(addressString string, description string) (*IPAddress, e
 
 func DisplayIpAddressArray(addressArray []*IPAddress, level int) {
 	for _, address := range addressArray {
-		outputString, err := giveInfoString(address)
+		outputString, err := address.giveInfoString()
 		if err != nil {
 			fmt.Println(err)
 		}
