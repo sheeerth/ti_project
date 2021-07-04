@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 )
 
@@ -39,7 +40,7 @@ func CreateNewIpAddress(addressString string, description string) (*IPAddress, e
 	return &IPAddress{ipAddress: *ipv4Net, description: description, subnets: test}, nil
 }
 
-func DisplayIpAddressArray(addressArray []*IPAddress, level int) {
+func SaveAddressInFile(addressArray []*IPAddress, level int, stream *os.File,display func(stream *os.File, a string) error) error {
 	for _, address := range addressArray {
 		outputString, err := address.giveInfoString()
 		if err != nil {
@@ -52,10 +53,20 @@ func DisplayIpAddressArray(addressArray []*IPAddress, level int) {
 			tabulationArray = append(tabulationArray, "\t")
 		}
 
-		fmt.Println(strings.Join(tabulationArray, ""), outputString)
+		saveIsWrong := display(stream, strings.Join([]string{strings.Join(tabulationArray, ""), outputString}, ""))
+
+		if saveIsWrong != nil {
+			return saveIsWrong
+		}
 
 		if address.subnets != nil {
-			DisplayIpAddressArray(address.subnets, level + 1)
+			err2 := SaveAddressInFile(address.subnets, level + 1, stream ,display)
+
+			if err2 != nil {
+				return err2
+			}
 		}
 	}
+
+	return nil
 }
