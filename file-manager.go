@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"os"
+	"ti/main/ipAddress"
 )
 
 func readFile(filePath string) ([]*string, error) {
@@ -26,4 +29,27 @@ func readFile(filePath string) ([]*string, error) {
 	}
 
 	return stringArray, nil
+}
+
+func writeInFile(f *os.File, line string) error {
+	_, err := f.WriteString(fmt.Sprintf("%s\n", line))
+
+	if err != nil {
+		return errors.New("something is wrong with file")
+	}
+
+	return nil
+}
+
+func saveAddressesInFile(addressesArray []*ipAddress.IPAddress) error {
+	outputFile := createOutputFile("output.txt")
+
+	err := ipAddress.SaveAddressInFile(addressesArray, 0, outputFile ,writeInFile)
+	if err != nil {
+		return err
+	}
+
+	defer outputFile.Close()
+
+	return nil
 }
