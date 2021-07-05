@@ -9,7 +9,7 @@ import (
 )
 
 type IPAddress struct {
-	ipAddress   net.IPNet
+	IpAddress   net.IPNet
 	description string
 	subnets     []*IPAddress
 }
@@ -19,15 +19,15 @@ func (x *IPAddress) giveInfoString() (string, error) {
 		return "", errors.New("object can't be nil")
 	}
 
-	return fmt.Sprintf("%s %s %s", (*x).ipAddress.IP.To4(), (*x).ipAddress.Mask.String(), (*x).description), nil
+	return fmt.Sprintf("%s %s %s", (*x).IpAddress.IP.To4(), (*x).IpAddress.Mask.String(), (*x).description), nil
 }
 
 func (x *IPAddress) getAddressString () string {
-	return x.ipAddress.IP.String()
+	return x.IpAddress.IP.String()
 }
 
 func (x *IPAddress) getAddressMaskString() string {
-	return x.ipAddress.Mask.String()
+	return x.IpAddress.Mask.String()
 }
 
 func CreateNewIpAddress(addressString string, description string) (*IPAddress, error) {
@@ -37,7 +37,7 @@ func CreateNewIpAddress(addressString string, description string) (*IPAddress, e
 	}
 	var test []*IPAddress = nil
 
-	return &IPAddress{ipAddress: *ipv4Net, description: description, subnets: test}, nil
+	return &IPAddress{IpAddress: *ipv4Net, description: description, subnets: test}, nil
 }
 
 func SaveAddressInFile(addressArray []*IPAddress, level int, stream *os.File,display func(stream *os.File, a string) error) error {
