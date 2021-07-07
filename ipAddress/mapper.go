@@ -9,7 +9,7 @@ func repeatedAddElements(stringArray []*string, actualString []string, index *in
 	slave, _ := CreateNewIpAddress(strings.Replace(actualString[0], "\t", "", level), actualString[1])
 
 	if master != nil {
-		master.subnets = append(master.subnets, slave)
+		master.Subnets = append(master.Subnets, slave)
 	}
 
 	*index++
@@ -54,8 +54,8 @@ func checkRepeat(ipAddresses []*IPAddress) []*IPAddress {
 	for x, address := range ipAddresses {
 		repeat := false
 
-		if address.subnets != nil {
-			subnetsCorrect = checkRepeat(address.subnets)
+		if address.Subnets != nil {
+			subnetsCorrect = checkRepeat(address.Subnets)
 		}
 
 		for y, ipAddress := range ipAddresses {
@@ -72,7 +72,7 @@ func checkRepeat(ipAddresses []*IPAddress) []*IPAddress {
 		if !repeat {
 			master := ipAddresses[x]
 
-			master.subnets = subnetsCorrect
+			master.Subnets = subnetsCorrect
 			correctAddressList = append(correctAddressList, master)
 		} else {
 			println("\033[31mRepeated address", ipAddresses[x].getAddressString(), "\033[0m")

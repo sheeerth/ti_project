@@ -51,6 +51,44 @@ func parseCIDR(s string) (net.IP, net.IP) {
 	return start, end
 }
 
+func Hosts(cidr string) ([]string, error) {
+	ip, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return nil, err
+	}
+
+	var ips []string
+	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
+		if ipnet.Mask[3] == 0x00 && ip[3] != 0x00 {
+			continue
+		}
+
+		ips = append(ips, ip.String())
+	}
+
+	return ips, nil
+}
+
+//  http://play.golang.org/p/m8TNTtygK0
+func inc(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
+}
+
+func arrayContainsElement(array []string, element string) bool {
+	for _, s := range array {
+		if s == element {
+			return true
+		}
+	}
+
+	return false
+}
+
 func main() {
 	argsWithoutProg := os.Args[1:]
 
@@ -60,15 +98,50 @@ func main() {
 			mainAddressesArray := fileOption(argsWithoutProg, i)
 
 			for _, address := range mainAddressesArray {
-				// _, ipv4Net, _ := net.ParseCIDR("157.158.1.0/24")
-				// b := address.IpAddress.Contains(ipv4Net.IP)
-
 				onesMask, _ := address.IpAddress.Mask.Size()
 
-				start, end := parseCIDR(fmt.Sprintf("%s/%d", address.IpAddress.IP.String(), onesMask))
+				masterSubnets, _ := Hosts(fmt.Sprintf("%s/%d", address.IpAddress.IP.String(), onesMask))
 
-				//println(strings.Split(parseRange.String(), "-")[0])
-				println(start.String(), end.String())
+				var subnetsAddresses [][]string
+
+				for _, subnet := range address.Subnets {
+					onesMask, _ := subnet.IpAddress.Mask.Size()
+
+					subnetSubnets, _ := Hosts(fmt.Sprintf("%s/%d", subnet.IpAddress.IP.String(), onesMask))
+
+					subnetsAddresses = append(subnetsAddresses, subnetSubnets)
+				}
+
+				var repeatList []string
+
+				for _, subnet := range masterSubnets {
+					for _, subnetsAddress := range subnetsAddresses {
+						for _, s2 := range subnetsAddress {
+							if subnet == s2 {
+								repeatList = append(repeatList, subnet)
+							}
+						}
+					}
+				}
+
+				var correctAddressList []string
+
+				for _, subnet := range masterSubnets {
+					if !arrayContainsElement(repeatList, subnet) {
+						correctAddressList = append(correctAddressList, subnet)
+					}
+				}
+
+				for _, s2 := range correctAddressList {
+					addressString := fmt.Sprintf("%s/%d", s2, 24)
+					slave, _ := ipAddress.CreateNewIpAddress(addressString, "WOLNA")
+
+					address.Subnets = append(address.Subnets, slave)
+				}
+
+				//start, end := parseCIDR(fmt.Sprintf("%s/%d", address.IpAddress.IP.String(), onesMask))
+
+				//println(start.String(), end.String())
 			}
 
 			err := saveAddressesInFile(mainAddressesArray)

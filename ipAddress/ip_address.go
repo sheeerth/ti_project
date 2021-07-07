@@ -10,16 +10,18 @@ import (
 
 type IPAddress struct {
 	IpAddress   net.IPNet
-	description string
-	subnets     []*IPAddress
+	Description string
+	Subnets     []*IPAddress
 }
 
-func (x *IPAddress) giveInfoString() (string, error) {
+func (x *IPAddress) GiveInfoString() (string, error) {
 	if x == nil {
 		return "", errors.New("object can't be nil")
 	}
 
-	return fmt.Sprintf("%s %s %s", (*x).IpAddress.IP.To4(), (*x).IpAddress.Mask.String(), (*x).description), nil
+	onesMask, _ := x.IpAddress.Mask.Size()
+
+	return fmt.Sprintf("%s/%d %s", (*x).IpAddress.IP.To4(), onesMask, (*x).Description), nil
 }
 
 func (x *IPAddress) getAddressString () string {
@@ -37,12 +39,12 @@ func CreateNewIpAddress(addressString string, description string) (*IPAddress, e
 	}
 	var test []*IPAddress = nil
 
-	return &IPAddress{IpAddress: *ipv4Net, description: description, subnets: test}, nil
+	return &IPAddress{IpAddress: *ipv4Net, Description: description, Subnets: test}, nil
 }
 
 func SaveAddressInFile(addressArray []*IPAddress, level int, stream *os.File,display func(stream *os.File, a string) error) error {
 	for _, address := range addressArray {
-		outputString, err := address.giveInfoString()
+		outputString, err := address.GiveInfoString()
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -59,8 +61,8 @@ func SaveAddressInFile(addressArray []*IPAddress, level int, stream *os.File,dis
 			return saveIsWrong
 		}
 
-		if address.subnets != nil {
-			err2 := SaveAddressInFile(address.subnets, level + 1, stream ,display)
+		if address.Subnets != nil {
+			err2 := SaveAddressInFile(address.Subnets, level + 1, stream ,display)
 
 			if err2 != nil {
 				return err2
@@ -69,4 +71,14 @@ func SaveAddressInFile(addressArray []*IPAddress, level int, stream *os.File,dis
 	}
 
 	return nil
+}
+
+func (x *IPAddress) SubnetsContainsNetwork(address string) bool {
+	for _, subnet := range x.Subnets {
+		if subnet.IpAddress.IP.String() == address {
+			return true
+		}
+	}
+
+	return false
 }
