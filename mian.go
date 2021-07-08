@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/apparentlymart/go-cidr/cidr"
 	"log"
-	"net"
 	_ "net"
 	"os"
+	"sort"
 	_ "strconv"
 	"ti/main/ipAddress"
 )
@@ -30,65 +29,6 @@ func createOutputFile(name string) *os.File {
 	return f
 }
 
-func isV4IP(ip net.IP) bool {
-	return ip.To4() != nil
-}
-
-func parseCIDR(s string) (net.IP, net.IP) {
-	ip, network, err := net.ParseCIDR(s)
-	if err != nil {
-		return nil, nil
-	}
-
-	start, end := cidr.AddressRange(network)
-	prefixLen, _ := network.Mask.Size()
-
-	if isV4IP(ip) && prefixLen < 31 {
-		start = cidr.Inc(start)
-		end = cidr.Dec(end)
-	}
-
-	return start, end
-}
-
-func Hosts(cidr string) ([]string, error) {
-	ip, ipnet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return nil, err
-	}
-
-	var ips []string
-	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
-		if ipnet.Mask[3] == 0x00 && ip[3] != 0x00 {
-			continue
-		}
-
-		ips = append(ips, ip.String())
-	}
-
-	return ips, nil
-}
-
-//  http://play.golang.org/p/m8TNTtygK0
-func inc(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
-		}
-	}
-}
-
-func arrayContainsElement(array []string, element string) bool {
-	for _, s := range array {
-		if s == element {
-			return true
-		}
-	}
-
-	return false
-}
-
 func main() {
 	argsWithoutProg := os.Args[1:]
 
@@ -98,50 +38,29 @@ func main() {
 			mainAddressesArray := fileOption(argsWithoutProg, i)
 
 			for _, address := range mainAddressesArray {
-				onesMask, _ := address.IpAddress.Mask.Size()
+				address.ExtendSubnet()
 
-				masterSubnets, _ := Hosts(fmt.Sprintf("%s/%d", address.IpAddress.IP.String(), onesMask))
+				sort.Sort(address.Subnets)
 
-				var subnetsAddresses [][]string
+				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
+				sort.Sort(address.Subnets)
 
-				for _, subnet := range address.Subnets {
-					onesMask, _ := subnet.IpAddress.Mask.Size()
+				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
+				sort.Sort(address.Subnets)
 
-					subnetSubnets, _ := Hosts(fmt.Sprintf("%s/%d", subnet.IpAddress.IP.String(), onesMask))
+				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
+				sort.Sort(address.Subnets)
 
-					subnetsAddresses = append(subnetsAddresses, subnetSubnets)
-				}
+				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
+				sort.Sort(address.Subnets)
 
-				var repeatList []string
+				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
+				sort.Sort(address.Subnets)
 
-				for _, subnet := range masterSubnets {
-					for _, subnetsAddress := range subnetsAddresses {
-						for _, s2 := range subnetsAddress {
-							if subnet == s2 {
-								repeatList = append(repeatList, subnet)
-							}
-						}
-					}
-				}
+				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
+				sort.Sort(address.Subnets)
 
-				var correctAddressList []string
-
-				for _, subnet := range masterSubnets {
-					if !arrayContainsElement(repeatList, subnet) {
-						correctAddressList = append(correctAddressList, subnet)
-					}
-				}
-
-				for _, s2 := range correctAddressList {
-					addressString := fmt.Sprintf("%s/%d", s2, 24)
-					slave, _ := ipAddress.CreateNewIpAddress(addressString, "WOLNA")
-
-					address.Subnets = append(address.Subnets, slave)
-				}
-
-				//start, end := parseCIDR(fmt.Sprintf("%s/%d", address.IpAddress.IP.String(), onesMask))
-
-				//println(start.String(), end.String())
+				// TODO do pętli i jakis mechanizm wykrywania kiedy koniec
 			}
 
 			err := saveAddressesInFile(mainAddressesArray)
