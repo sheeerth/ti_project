@@ -2,40 +2,48 @@ package main
 
 import (
 	"fmt"
-	_ "net"
+	"log"
 	"os"
-	_ "strconv"
 	"ti/main/ipAddress"
 )
 
-func fileOption(argsWithoutProg []string, index int) {
+func fileOption(argsWithoutProg []string, index int) []*ipAddress.IPAddress {
 	stringArray, err := readFile(argsWithoutProg[index + 1])
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	outputString := ipAddress.AddressesMapper(stringArray)
-	//
-	//cmd := exec.Command("stty", "size")
-	//cmd.Stdin = os.Stdin
-	//out, _ := cmd.Output()
-	//fmt.Printf("out: %#v", string(out))
-
-	println("")
-
-	ipAddress.DisplayIpAddressArray(outputString, 0)
+	return ipAddress.AddressesMapper(stringArray)
 }
+
+func createOutputFile(name string) *os.File {
+	f, err := os.Create(name)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return f
+}
+
 
 func main() {
 	argsWithoutProg := os.Args[1:]
 
 	for i, s := range argsWithoutProg {
-		switch s {
-		case "--file":
-			fileOption(argsWithoutProg, i)
-			break
-		case "-f":
-			fileOption(argsWithoutProg, i)
+		switch {
+		case s == "--file" || s =="-f":
+			mainAddressesArray := fileOption(argsWithoutProg, i)
+
+			for _, address := range mainAddressesArray {
+				address.ExtendAndReduceSubnets()
+			}
+
+			err := saveAddressesInFile(mainAddressesArray)
+
+			if err != nil {
+				println(err.Error())
+			}
 			break
 		}
 	}
