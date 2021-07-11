@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ type ByIpAddress []*IPAddress
 type IPAddress struct {
 	ipAddress   net.IPNet
 	description string
-	Subnets     ByIpAddress
+	subnets     ByIpAddress
 }
 
 func (x *IPAddress) toString() (string, error) {
@@ -33,13 +34,40 @@ func (x *IPAddress) getAddressMaskString() string {
 }
 
 func (x *IPAddress) SubnetsContainsNetwork(address string) bool {
-	for _, subnet := range x.Subnets {
+	for _, subnet := range x.subnets {
 		if subnet.ipAddress.IP.String() == address {
 			return true
 		}
 	}
 
 	return false
+}
+
+func (x *IPAddress) ExtendAndReduceSubnets() {
+	x.ExtendSubnet()
+	sort.Sort(x.subnets)
+
+	subnetsLong := len(x.subnets)
+
+	x.subnets = x.subnets.ReduceMaskOfSubnets()
+	sort.Sort(x.subnets)
+
+	afterSubnetLong := len(x.subnets)
+
+	for subnetsLong != afterSubnetLong {
+		subnetsLong = afterSubnetLong
+
+		x.subnets = x.subnets.ReduceMaskOfSubnets()
+		sort.Sort(x.subnets)
+
+		afterSubnetLong = len(x.subnets)
+	}
+
+	for _, subnet := range x.subnets {
+		if subnet.subnets != nil {
+			subnet.ExtendAndReduceSubnets()
+		}
+	}
 }
 
 func (a ByIpAddress) Len() int           { return len(a) }
@@ -57,6 +85,10 @@ func (a ByIpAddress) ReduceMaskOfSubnets() []*IPAddress  {
 		}
 
 		if a[i].description == "WOLNA" {
+			if i + 1 < len(a) - 1 && a[i - 1].ipAddress.Mask.String() != a[i].ipAddress.Mask.String() {
+				continue
+			}
+
 			calculate++
 		} else {
 			if calculate == 1 {
@@ -76,16 +108,12 @@ func (a ByIpAddress) ReduceMaskOfSubnets() []*IPAddress  {
 
 			optimizeArray = append(optimizeArray, a[i])
 			calculate = 0
-		} else {
-			if calculate == 2 && i + 1 < len(a) - 1 && a[i].ipAddress.Mask.String() != a[i + 1].ipAddress.Mask.String() {
-				optimizeArray = append(optimizeArray, a[i + 1])
-				optimizeArray = append(optimizeArray, a[i])
-				calculate = 0
-			}
+		} else if  calculate == 2 && i + 1 < len(a) - 1 && a[i].ipAddress.Mask.String() != a[i + 1].ipAddress.Mask.String(){
+			optimizeArray = append(optimizeArray, a[i + 1])
+			optimizeArray = append(optimizeArray, a[i])
+			calculate = 0
 		}
-
 	}
-
 
 	return optimizeArray
 }
@@ -98,7 +126,7 @@ func (x *IPAddress) ExtendSubnet() {
 	onesMask, _ := x.ipAddress.Mask.Size()
 	masterSubnets, _ := hosts(fmt.Sprintf("%s/%d", x.ipAddress.IP.String(), onesMask))
 
-	for _, subnet := range x.Subnets {
+	for _, subnet := range x.subnets {
 		onesMask, _ := subnet.ipAddress.Mask.Size()
 		subnetSubnets, _ := hosts(fmt.Sprintf("%s/%d", subnet.ipAddress.IP.String(), onesMask))
 
@@ -125,7 +153,7 @@ func (x *IPAddress) ExtendSubnet() {
 		addressString := fmt.Sprintf("%s/%d", s2, 24)
 		slave, _ := CreateNewIpAddress(addressString, "WOLNA")
 
-		x.Subnets = append(x.Subnets, slave)
+		x.subnets = append(x.subnets, slave)
 	}
 }
 
@@ -135,7 +163,7 @@ func CreateNewIpAddress(addressString string, description string) (*IPAddress, e
 
 	var test []*IPAddress = nil
 
-	return &IPAddress{ipAddress: *ipv4Net, description: description, Subnets: test}, nil
+	return &IPAddress{ipAddress: *ipv4Net, description: description, subnets: test}, nil
 }
 
 func SaveAddressInFile(addressArray []*IPAddress, level int, stream *os.File,display func(stream *os.File, a string) error) error {
@@ -152,8 +180,8 @@ func SaveAddressInFile(addressArray []*IPAddress, level int, stream *os.File,dis
 		saveIsWrong := display(stream, strings.Join([]string{strings.Join(tabulationArray, ""), outputString}, ""))
 		if saveIsWrong != nil { return saveIsWrong }
 
-		if address.Subnets != nil {
-			err2 := SaveAddressInFile(address.Subnets, level + 1, stream ,display)
+		if address.subnets != nil {
+			err2 := SaveAddressInFile(address.subnets, level + 1, stream ,display)
 			if err2 != nil { return err2 }
 		}
 	}

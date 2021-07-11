@@ -3,10 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-	_ "net"
 	"os"
-	"sort"
-	_ "strconv"
 	"ti/main/ipAddress"
 )
 
@@ -29,48 +26,18 @@ func createOutputFile(name string) *os.File {
 	return f
 }
 
+
 func main() {
 	argsWithoutProg := os.Args[1:]
 
 	for i, s := range argsWithoutProg {
-		switch s {
-		case "--file":
+		switch {
+		case s == "--file" || s =="-f":
 			mainAddressesArray := fileOption(argsWithoutProg, i)
 
 			for _, address := range mainAddressesArray {
-				address.ExtendSubnet()
-
-				sort.Sort(address.Subnets)
-
-				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
-				sort.Sort(address.Subnets)
-
-				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
-				sort.Sort(address.Subnets)
-
-				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
-				sort.Sort(address.Subnets)
-
-				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
-				sort.Sort(address.Subnets)
-
-				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
-				sort.Sort(address.Subnets)
-
-				address.Subnets = address.Subnets.ReduceMaskOfSubnets()
-				sort.Sort(address.Subnets)
-
-				// TODO do pętli i jakis mechanizm wykrywania kiedy koniec
+				address.ExtendAndReduceSubnets()
 			}
-
-			err := saveAddressesInFile(mainAddressesArray)
-
-			if err != nil {
-				println(err.Error())
-			}
-			break
-		case "-f":
-			mainAddressesArray := fileOption(argsWithoutProg, i)
 
 			err := saveAddressesInFile(mainAddressesArray)
 
